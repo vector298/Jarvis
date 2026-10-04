@@ -1,0 +1,26 @@
+{
+  "name": "jarvis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal command centre: calendar, reminders, Drive and Telegram behind one console.",
+  "type": "module",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "demo": "node server/index.js --demo",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@googleapis/calendar": "^20.1.0",
+    "@googleapis/drive": "^26.0.2",
+    "chrono-node": "^2.10.2",
+    "express": "^5.2.1",
+    "google-auth-library": "^11.1.0",
+    "multer": "^2.4.0"
+  }
+}
