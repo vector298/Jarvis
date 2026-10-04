@@ -16,7 +16,8 @@ export const config = {
   root,
   port,
   host: env.HOST || '127.0.0.1',
-  publicUrl: (env.PUBLIC_URL || `http://localhost:${port}`).replace(/\/$/, ''),
+  publicUrl: (env.PUBLIC_URL || env.RENDER_EXTERNAL_URL || `http://localhost:${port}`).replace(/\/$/, ''),
+  accessPassword: env.ACCESS_PASSWORD || '',
   dataDir: path.resolve(root, env.DATA_DIR || 'data'),
   demo: env.JARVIS_DEMO === '1' || process.argv.includes('--demo'),
   google: {

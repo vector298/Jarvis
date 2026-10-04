@@ -270,3 +270,24 @@ test('empty and oversized input is handled', async () => {
   const long = await srv.run('hello '.repeat(1000));
   assert.ok(['done', 'needs_input'].includes(long.state));
 });
+
+test('the health probe answers without credentials', async () => {
+  const res = await fetch(`${srv.base}/healthz`);
+  assert.equal(res.status, 200);
+  assert.equal(await res.text(), 'ok');
+});
+
+test('with ACCESS_PASSWORD set, everything but the probe needs it', async () => {
+  const locked = await startServer({ JARVIS_DEMO: '1', ACCESS_PASSWORD: 'arc-reactor' });
+  try {
+    assert.equal((await fetch(`${locked.base}/`)).status, 401);
+    assert.equal((await fetch(`${locked.base}/api/systems`)).status, 401);
+    assert.equal((await fetch(`${locked.base}/healthz`)).status, 200);
+    const basic = (pw) => ({ headers: { Authorization: `Basic ${Buffer.from(`tony:${pw}`).toString('base64')}` } });
+    assert.equal((await fetch(`${locked.base}/api/systems`, basic('wrong'))).status, 401);
+    assert.equal((await fetch(`${locked.base}/api/systems`, basic('arc-reactor'))).status, 200);
+    assert.equal((await fetch(`${locked.base}/`, basic('arc-reactor'))).status, 200);
+  } finally {
+    await locked.stop();
+  }
+});

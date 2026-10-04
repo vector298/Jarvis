@@ -87,9 +87,30 @@ browser ── POST /api/commands ──▶ queue ──▶ planner ──▶ va
 - `server/integrations/`: `google.js` (OAuth, Calendar, Drive, error translation), `telegram.js`, and `demo.js` (the simulation).
 - `public/`: dependency-free ES modules, no build step. Fonts are bundled so it works offline.
 
+## Hosting
+
+A `Dockerfile` and a Render blueprint (`render.yaml`) are included.
+
+**Public demo (safe to share).** On [Render](https://render.com): *New → Blueprint*, pick this repo. It deploys in simulation mode: no real accounts, nothing saved, so anyone with the link can look around. Render supplies the public address itself, so no further settings are needed.
+
+**Docker anywhere else:**
+
+```bash
+docker build -t jarvis .
+docker run -p 3000:3000 -e JARVIS_DEMO=1 jarvis                     # simulation
+docker run -p 3000:3000 --env-file .env -v jarvis-data:/data jarvis   # real accounts, state kept in the volume
+```
+
+**Real accounts on a hosted copy.** Do this only with a password in front of it, because the server holds your Google and Telegram access:
+
+1. Set `ACCESS_PASSWORD`. Every page and API call then needs it (the browser asks once; any username works). `/healthz` stays open for the host's health check.
+2. Set `PUBLIC_URL` to the exact address you use (Render fills it in automatically), and add `PUBLIC_URL/auth/google/callback` as an authorised redirect URI in your Google OAuth client.
+3. Give `/data` persistent storage, otherwise tokens, reminders and history disappear on every redeploy. On Render's free plan there is no persistent disk, so use a paid plan with a disk mounted at `/data`, or accept re-connecting after each deploy.
+4. Free plans sleep when idle, and reminders only fire while the server is awake.
+
 ## Safety notes
 
-- The server binds to `127.0.0.1` by default and holds live Google and Telegram credentials. There is no login. Don't expose it to a network you don't trust without putting authentication in front.
+- The server binds to `127.0.0.1` by default and holds live Google and Telegram credentials. There is no login unless you set `ACCESS_PASSWORD`. Don't expose it to a network you don't trust without putting authentication in front.
 - State-changing requests from a foreign `Origin` are refused, and requests addressed to any host name other than `localhost`, `127.0.0.1` or your `PUBLIC_URL` are rejected (DNS-rebinding protection). If you reach JARVIS by another name, set `PUBLIC_URL` to it.
 - File names and Drive content are rendered as text, never as HTML.
 - Uploaded files are staged in the OS temp directory and removed after filing (or after an hour).
@@ -100,7 +121,7 @@ browser ── POST /api/commands ──▶ queue ──▶ planner ──▶ va
 npm test
 ```
 
-58 tests, no accounts needed:
+60 tests, no accounts needed:
 
 - the order parser (dates, relative references, clarification and slot filling, message extraction);
 - the whole app over HTTP in simulation mode (queueing, interrupt, confirmation, retry, uploads, search, reminders firing);

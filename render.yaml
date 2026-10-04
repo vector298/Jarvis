@@ -1,0 +1,12 @@
+# Render blueprint: New + → Blueprint → pick this repo.
+# Deploys in simulation mode (no real accounts, nothing saved), which is safe to
+# share publicly. To connect real accounts instead, see "Hosting" in the README.
+services:
+  - type: web
+    name: jarvis
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: JARVIS_DEMO
+        value: "1"

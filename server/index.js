@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { config } from './config.js';
 import { store, uid } from './store.js';
 import { buildRouter, buildAuthRouter } from './routes.js';
@@ -30,6 +31,24 @@ app.use((req, res, next) => {
   if (allowedHosts.has(host)) return next();
   res.status(403).type('text').send(`Unrecognised host "${host}". Set PUBLIC_URL to the address you use to reach JARVIS.`);
 });
+// Liveness probe for hosts; answers before any auth and reveals nothing.
+app.get('/healthz', (req, res) => res.type('text').send('ok'));
+
+// Optional shared password (HTTP Basic, any username) for hosted installs.
+if (config.accessPassword) {
+  const want = crypto.createHash('sha256').update(config.accessPassword).digest();
+  app.use((req, res, next) => {
+    const [scheme, token] = String(req.headers.authorization || '').split(' ');
+    if (scheme === 'Basic' && token) {
+      const given = Buffer.from(token, 'base64').toString().split(':').slice(1).join(':');
+      if (crypto.timingSafeEqual(crypto.createHash('sha256').update(given).digest(), want)) return next();
+    }
+    res.set('WWW-Authenticate', 'Basic realm="JARVIS", charset="UTF-8"').status(401).type('text').send('Authentication required.');
+  });
+} else if (config.host !== '127.0.0.1' && config.host !== 'localhost' && !config.demo) {
+  console.warn('warning: listening beyond localhost with no ACCESS_PASSWORD set. Anyone who can reach this port can use your connected accounts.');
+}
+
 app.use('/api', buildRouter());
 app.use('/auth', buildAuthRouter());
 app.use(express.static(path.join(config.root, 'public'), { extensions: ['html'] }));

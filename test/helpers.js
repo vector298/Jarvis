@@ -28,10 +28,13 @@ export async function startServer(env = {}, { seed } = {}) {
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0; i < 60; i++) {
     try {
-      if ((await fetch(`${base}/api/systems`)).ok) break;
+      if ((await fetch(`${base}/healthz`)).ok) break;
     } catch { /* not up yet */ }
     await sleep(100);
-    if (i === 59) throw new Error(`server did not start:\n${log}`);
+    if (i === 59) {
+      child.kill('SIGKILL');
+      throw new Error(`server did not start:\n${log}`);
+    }
   }
 
   const call = async (p, { method = 'GET', body, headers } = {}) => {
